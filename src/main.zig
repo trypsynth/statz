@@ -8,13 +8,18 @@ const usage =
     \\Arguments:
     \\  <path> the path to analyze, defaults to the CWD
     \\
+    \\Options:
+    \\  -H, --hidden include hidden files in the analysis
+    \\  -s, --symlinks follow symlinks when analyzing (use with care!)
+    \\  -v, --verbose show much more detailed analysis results
+    \\
 ;
 
 const Cli = struct {
     path: []const u8,
-    verbose: bool = false,
-    symlinks: bool = false,
     hidden_files: bool = false,
+    symlinks: bool = false,
+    verbose: bool = false,
 
     fn init(allocator: std.mem.Allocator) !Cli {
         var args = try std.process.argsWithAllocator(allocator);
