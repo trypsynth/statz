@@ -56,7 +56,7 @@ pub fn main() !void {
         },
     };
     defer allocator.free(cli.path);
-    var dir = std.fs.cwd().openDir(cli.path, .{.iterate = true}) catch |err| switch (err) {
+    var dir = std.fs.cwd().openDir(cli.path, .{ .iterate = true }) catch |err| switch (err) {
         error.FileNotFound => {
             std.debug.print("error: directory {s} not found.\n", .{cli.path});
             try printUsage(true);
@@ -65,10 +65,7 @@ pub fn main() !void {
         else => return err,
     };
     defer dir.close();
-    var iter = dir.iterate();
-    while (try iter.next()) |file| {
-        std.debug.print("{s}\n", .{file.name});
-    }
+    try walkDir(dir, allocator, &cli, "");
 }
 
 fn printUsage(to_stderr: bool) !void {
@@ -77,4 +74,26 @@ fn printUsage(to_stderr: bool) !void {
     var writer = out.writer(&buf);
     try writer.interface.print(usage, .{});
     try writer.interface.flush();
+}
+
+fn walkDir(dir: std.fs.Dir, allocator: std.mem.Allocator, cli: *const Cli, prefix: []const u8) !void {
+    var iter = dir.iterate();
+    while (try iter.next()) |entry| {
+        if (!cli.hidden_files and entry.name.len > 0 and entry.name[0] == '.') continue;
+        if (prefix.len == 0) {
+            std.debug.print("{s}\n", .{entry.name});
+        } else {
+            std.debug.print("{s}/{s}\n", .{ prefix, entry.name });
+        }
+        if (entry.kind == .directory) {
+            var subdir = dir.openDir(entry.name, .{
+                .iterate = true,
+                .no_follow = !cli.symlinks,
+            }) catch continue;
+            defer subdir.close();
+            const new_prefix = try std.fmt.allocPrint(allocator, "{s}{s}{s}", .{ prefix, if (prefix.len == 0) "" else "/", entry.name });
+            defer allocator.free(new_prefix);
+            try walkDir(subdir, allocator, cli, new_prefix);
+        }
+    }
 }
