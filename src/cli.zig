@@ -1,5 +1,11 @@
 const std = @import("std");
 
+pub const SizeFormat = enum {
+    binary,
+    decimal,
+    raw,
+};
+
 pub const usage =
     \\statz - fast folder analysis tool.
     \\
@@ -9,6 +15,7 @@ pub const usage =
     \\  <path> the path to analyze, defaults to the CWD
     \\
     \\Options:
+    \\  -f, --format <format> set size display format: binary (default), decimal, or raw
     \\  -H, --hidden include hidden files in the analysis
     \\  -s, --symlinks follow symlinks when analyzing (use with care to avoid circular symlinks)
     \\  -v, --verbose show much more detailed analysis results
@@ -20,6 +27,7 @@ pub const Cli = struct {
     hidden_files: bool = false,
     symlinks: bool = false,
     verbose: bool = false,
+    size_format: SizeFormat = .binary,
     allocator: std.mem.Allocator,
 
     pub fn init(allocator: std.mem.Allocator) !Cli {
@@ -41,6 +49,9 @@ pub const Cli = struct {
                 cli.symlinks = true;
             } else if (std.mem.eql(u8, arg, "-H") or std.mem.eql(u8, arg, "--hidden")) {
                 cli.hidden_files = true;
+            } else if (std.mem.eql(u8, arg, "-f") or std.mem.eql(u8, arg, "--format")) {
+                const fmt_arg = args.next() orelse return error.MissingFormatValue;
+                cli.size_format = std.meta.stringToEnum(SizeFormat, fmt_arg) orelse return error.InvalidFormatValue;
             } else if (std.mem.startsWith(u8, arg, "-")) {
                 return error.InvalidOption;
             } else {

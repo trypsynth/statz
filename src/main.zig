@@ -29,5 +29,5 @@ pub fn main() !void {
     var stats = Stats.init(allocator);
     defer stats.deinit();
     try walker.walk(dir, &options, &stats);
-    try output.printSummary(&stats);
+    try output.printSummary(&stats, options.size_format);
 }
